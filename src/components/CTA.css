@@ -1,0 +1,49 @@
+.cta {
+  padding: 100px 20px;
+
+  background: #6d3df5;
+}
+
+.cta-container {
+  max-width: 850px;
+
+  margin: auto;
+
+  text-align: center;
+
+  color: white;
+}
+
+.cta h2 {
+  font-size: 45px;
+
+  line-height: 1.2;
+
+  margin: 0;
+}
+
+.cta h2 span {
+  color: #e8ddff;
+}
+
+.cta p {
+  margin: 20px 0 30px;
+
+  color: #eee8ff;
+}
+
+.cta-button {
+  display: inline-block;
+
+  background: white;
+
+  color: #6d3df5;
+
+  padding: 15px 28px;
+
+  border-radius: 8px;
+
+  text-decoration: none;
+
+  font-weight: 700;
+}

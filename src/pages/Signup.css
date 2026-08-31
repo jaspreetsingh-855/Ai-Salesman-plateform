@@ -1,0 +1,282 @@
+
+/* =========================
+   PAGE
+========================= */
+
+.signup-page {
+  min-height: 100vh;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  background: #f5f7fc;
+
+  padding: 40px;
+}
+
+
+/* =========================
+   FORM CONTAINER
+========================= */
+
+.signup-page form {
+  width: 400px;
+
+  padding: 35px 40px;
+
+  background: #ffffff;
+
+  border-radius: 16px;
+
+  box-shadow: 0 10px 35px rgba(0, 0, 0, 0.08);
+
+  box-sizing: border-box;
+}
+
+
+/* =========================
+   HEADING
+========================= */
+
+.signup-page h1 {
+  margin: 0 0 30px;
+
+  text-align: center;
+
+  font-size: 26px;
+
+  color: #182344;
+}
+
+
+/* =========================
+   FORM GROUP
+========================= */
+
+.signup-page form > div {
+  margin-bottom: 18px;
+}
+
+
+/* =========================
+   LABEL
+========================= */
+
+.signup-page label {
+  display: block;
+
+  margin-bottom: 7px;
+
+  font-size: 13px;
+
+  font-weight: 600;
+
+  color: #29334d;
+}
+
+
+/* =========================
+   INPUT & SELECT
+========================= */
+
+.signup-page input,
+.signup-page select {
+  width: 100%;
+
+  height: 42px;
+
+  padding: 0 12px;
+
+  border: 1px solid #dfe3ec;
+
+  border-radius: 7px;
+
+  outline: none;
+
+  background: #ffffff;
+
+  font-size: 13px;
+
+  color: #30394f;
+
+  box-sizing: border-box;
+}
+
+
+/* =========================
+   PLACEHOLDER
+========================= */
+
+.signup-page input::placeholder {
+  color: #a3aabc;
+}
+
+
+/* =========================
+   FOCUS
+========================= */
+
+.signup-page input:focus,
+.signup-page select:focus {
+  border-color: #4350ff;
+
+  box-shadow: 0 0 0 3px rgba(67, 80, 255, 0.08);
+}
+
+
+/* =========================
+   SELECT
+========================= */
+
+.signup-page select {
+  cursor: pointer;
+
+  color: #8e97aa;
+}
+
+
+/* =========================
+   CREATE ACCOUNT BUTTON
+========================= */
+
+.signup-page form > button {
+  width: 100%;
+
+  height: 42px;
+
+  margin-top: 5px;
+
+  border: none;
+
+  border-radius: 7px;
+
+  background: #4350ff;
+
+  color: white;
+
+  font-size: 13px;
+
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: 0.2s;
+}
+
+
+.signup-page form > button:hover {
+  background: #3542ed;
+}
+
+
+/* =========================
+   LOGIN SECTION
+========================= */
+
+.signup-page form > div.login-section {
+  display: flex;
+
+  justify-content: center;
+
+  align-items: center;
+
+  gap: 6px;
+
+  margin-top: 20px;
+
+  margin-bottom: 0;
+}
+
+
+/* =========================
+   LOGIN TEXT
+========================= */
+
+.signup-page h5 {
+  margin: 0;
+
+  font-size: 12px;
+
+  font-weight: 400;
+
+  color: #737d94;
+}
+
+
+/* =========================
+   LOGIN BUTTON
+========================= */
+
+.signup-page .login-section button {
+  padding: 0;
+
+  border: none;
+
+  background: transparent;
+
+  color: #4350ff;
+
+  font-size: 12px;
+
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+
+.signup-page .login-section button:hover {
+  text-decoration: underline;
+}
+
+
+/* =========================
+   SUBMITTED DATA
+========================= */
+
+.signup-page .submitted-data {
+  margin-top: 20px;
+
+  padding: 15px;
+
+  border-radius: 8px;
+
+  background: #f5f7fc;
+}
+
+
+.signup-page .submitted-data h3 {
+  margin: 0 0 10px;
+
+  font-size: 15px;
+
+  color: #182344;
+}
+
+
+.signup-page .submitted-data p {
+  margin: 6px 0;
+
+  font-size: 13px;
+
+  color: #30394f;
+}
+
+
+/* =========================
+   MOBILE
+========================= */
+
+@media (max-width: 500px) {
+
+  .signup-page {
+    padding: 20px;
+  }
+
+  .signup-page form {
+    width: 100%;
+
+    padding: 30px 25px;
+  }
+}
+

@@ -1,0 +1,9 @@
+.landing-page {
+  min-height: 100vh;
+  background: #ffffff;
+  color: #111827;
+}
+
+.landing-page main {
+  overflow: hidden;
+}
