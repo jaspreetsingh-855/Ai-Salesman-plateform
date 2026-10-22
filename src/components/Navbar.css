@@ -99,3 +99,18 @@
 .signup-btn:hover {
   background: #5727d8;
 }
+
+.user-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.logout-btn {
+  border: none;
+  background: transparent;
+  color: #111827;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}

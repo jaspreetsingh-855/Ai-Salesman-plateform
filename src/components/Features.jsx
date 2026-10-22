@@ -31,7 +31,7 @@ function Features() {
     {
       icon: "👥",
       title: "Team Collaboration",
-      text: "Help managers and sales representatives work together efficiently."
+      text: "Help admins and sales representatives work together efficiently."
     }
   ];
 

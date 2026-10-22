@@ -169,6 +169,16 @@
   background: #3542ed;
 }
 
+.signup-page .error-message {
+  margin: 0 0 12px;
+
+  text-align: center;
+
+  font-size: 13px;
+
+  color: #d64545;
+}
+
 
 /* =========================
    LOGIN SECTION
@@ -227,39 +237,6 @@
 
 .signup-page .login-section button:hover {
   text-decoration: underline;
-}
-
-
-/* =========================
-   SUBMITTED DATA
-========================= */
-
-.signup-page .submitted-data {
-  margin-top: 20px;
-
-  padding: 15px;
-
-  border-radius: 8px;
-
-  background: #f5f7fc;
-}
-
-
-.signup-page .submitted-data h3 {
-  margin: 0 0 10px;
-
-  font-size: 15px;
-
-  color: #182344;
-}
-
-
-.signup-page .submitted-data p {
-  margin: 6px 0;
-
-  font-size: 13px;
-
-  color: #30394f;
 }
 
 

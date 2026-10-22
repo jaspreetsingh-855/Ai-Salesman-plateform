@@ -109,6 +109,60 @@
   background: #3542ed;
 }
 
+.login-page .error-message {
+  margin: 0 0 12px;
+
+  text-align: center;
+
+  font-size: 13px;
+
+  color: #d64545;
+}
+
+.login-page form > div.signup-section {
+  display: flex;
+
+  justify-content: center;
+
+  align-items: center;
+
+  gap: 6px;
+
+  margin-top: 20px;
+
+  margin-bottom: 0;
+}
+
+.login-page h5 {
+  margin: 0;
+
+  font-size: 12px;
+
+  font-weight: 400;
+
+  color: #737d94;
+}
+
+.login-page .signup-section button {
+  padding: 0;
+
+  border: none;
+
+  background: transparent;
+
+  color: #4350ff;
+
+  font-size: 12px;
+
+  font-weight: 600;
+
+  cursor: pointer;
+}
+
+.login-page .signup-section button:hover {
+  text-decoration: underline;
+}
+
 @media (max-width: 500px) {
   .login-page {
     padding: 20px;

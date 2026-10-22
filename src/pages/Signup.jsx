@@ -1,234 +1,86 @@
-
 import { useState } from "react";
-import "./Signup.css";
 import { useNavigate } from "react-router-dom";
+import { portalHome, useAuth } from "../context/AuthContext";
+import { getErrorMessage } from "../api/client";
+import "./Signup.css";
 
 function Signup() {
-
-  // Used to navigate to another page
   const navigate = useNavigate();
-
-  // Object for storing form input data
+  const { signup } = useAuth();
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     phone: "",
     password: "",
-    role: ""
+    role: "admin"
   });
+  const [error, setError] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  // Object for storing data after clicking Create Account
-  const [submittedData, setSubmittedData] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    password: "",
-    role: ""
-  });
-
-  // Handle all input changes
   const handleChange = (e) => {
-
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setError("");
   };
 
-  // Handle Create Account button
-  const handleSubmit = (e) => {
-
+  const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // Store the current form data
-    setSubmittedData(formData);
-
-    // Print object in console
-    console.log(formData);
-  };
-
-  // Handle Login button
-  const handleLogin = () => {
-
-    navigate("/login");
-
+    setSaving(true);
+    try {
+      const user = await signup(formData);
+      navigate(portalHome(user.role));
+    } catch (err) {
+      setError(getErrorMessage(err, "Could not create account."));
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
     <div className="signup-page">
-
       <form onSubmit={handleSubmit}>
-
-        <h1>Signup Page</h1>
-
-
-        {/* ================= NAME ================= */}
+        <h1>Create account</h1>
 
         <div>
-          <label htmlFor="name">
-            Name
-          </label>
-
-          <input
-            id="name"
-            name="name"
-            type="text"
-            placeholder="Enter your name"
-            onChange={handleChange}
-          />
+          <label htmlFor="name">Name</label>
+          <input id="name" name="name" type="text" placeholder="Enter your name" onChange={handleChange} required />
         </div>
 
-
-        {/* ================= EMAIL ================= */}
-
         <div>
-          <label htmlFor="email">
-            Email
-          </label>
-
-          <input
-            id="email"
-            name="email"
-            type="email"
-            placeholder="Enter your email"
-            onChange={handleChange}
-          />
+          <label htmlFor="email">Email</label>
+          <input id="email" name="email" type="email" placeholder="Enter your email" onChange={handleChange} required />
         </div>
 
-
-        {/* ================= PHONE ================= */}
-
         <div>
-          <label htmlFor="phone">
-            Phone
-          </label>
-
-          <input
-            id="phone"
-            name="phone"
-            type="tel"
-            placeholder="Enter your phone number"
-            onChange={handleChange}
-          />
+          <label htmlFor="phone">Phone</label>
+          <input id="phone" name="phone" type="tel" placeholder="Enter your phone number" onChange={handleChange} />
         </div>
 
-
-        {/* ================= PASSWORD ================= */}
-
         <div>
-          <label htmlFor="password">
-            Password
-          </label>
-
-          <input
-            id="password"
-            name="password"
-            type="password"
-            placeholder="Enter your password"
-            onChange={handleChange}
-          />
+          <label htmlFor="password">Password</label>
+          <input id="password" name="password" type="password" placeholder="Enter your password" onChange={handleChange} required />
         </div>
 
-
-        {/* ================= ROLE ================= */}
-
         <div>
-          <label htmlFor="role">
-            Role
-          </label>
-
-          <select
-            id="role"
-            name="role"
-            defaultValue=""
-            onChange={handleChange}
-          >
-
-            <option value="" disabled>
-              Select your role
-            </option>
-
-            <option value="admin">
-              Admin
-            </option>
-
-            <option value="manager">
-              Manager
-            </option>
-
-            <option value="salesman">
-              Salesman
-            </option>
-
+          <label htmlFor="role">Role</label>
+          <select id="role" name="role" value={formData.role} onChange={handleChange} required>
+            <option value="admin">Admin</option>
+            <option value="salesman">Salesman</option>
           </select>
         </div>
 
+        {error && <p className="error-message">{error}</p>}
 
-        {/* ================= CREATE ACCOUNT ================= */}
-
-        <button type="submit">
-          Create Account
+        <button type="submit" disabled={saving}>
+          {saving ? "Creating..." : "Create Account"}
         </button>
 
-
-        {/* ================= LOGIN ================= */}
-
         <div className="login-section">
-
-          <h5>
-            Already have an account?
-          </h5>
-
-          <button
-            type="button"
-            onClick={handleLogin}
-          >
-            Login
-          </button>
-
+          <h5>Already have an account?</h5>
+          <button type="button" onClick={() => navigate("/login")}>Login</button>
         </div>
-
-
-        {/* ================= SUBMITTED DATA ================= */}
-
-        {submittedData.name && (
-
-          <div className="submitted-data">
-
-            <h3>
-              Submitted Data
-            </h3>
-
-            <p>
-              Name: {submittedData.name}
-            </p>
-
-            <p>
-              Email: {submittedData.email}
-            </p>
-
-            <p>
-              Phone: {submittedData.phone}
-            </p>
-
-            <p>
-              Password: {submittedData.password}
-            </p>
-
-            <p>
-              Role: {submittedData.role}
-            </p>
-
-          </div>
-
-        )}
-
       </form>
-
     </div>
   );
 }
 
 export default Signup;
-
