@@ -5,20 +5,29 @@ function SalesmanDashboard() {
   const [stats, setStats] = useState(null);
   const [summary, setSummary] = useState("");
   const [source, setSource] = useState("");
+  const [aiError, setAiError] = useState("");
   const [suggestion, setSuggestion] = useState("");
   const [error, setError] = useState("");
 
   const load = async () => {
     try {
-      const [dash, ai] = await Promise.all([
-        api.get("/reports/dashboard"),
-        api.get("/ai/daily-summary")
-      ]);
+      const dash = await api.get("/reports/dashboard");
       setStats(dash.data);
-      setSummary(ai.data.summary);
-      setSource(ai.data.source);
     } catch (err) {
       setError(getErrorMessage(err));
+      return;
+    }
+
+    setSummary("Loading AI summary...");
+    try {
+      const ai = await api.get("/ai/daily-summary");
+      setSummary(ai.data.summary);
+      setSource(ai.data.source);
+      setAiError(ai.data.error || "");
+    } catch (err) {
+      setSource("local");
+      setSummary("AI is busy. Stats still loaded — try refresh in a minute.");
+      setAiError(getErrorMessage(err));
     }
   };
 
@@ -26,6 +35,7 @@ function SalesmanDashboard() {
     const res = await api.post("/ai/route-suggestion", { date: stats?.today });
     setSuggestion(res.data.summary);
     setSource(res.data.source);
+    setAiError(res.data.error || "");
   };
 
   useEffect(() => {
@@ -46,6 +56,7 @@ function SalesmanDashboard() {
 
       <div className="panel">
         <h3>AI daily summary <small>({source || "local"})</small></h3>
+        {aiError && <p className="error-text">{aiError}</p>}
         <div className="ai-box">{summary}</div>
         <div style={{ marginTop: 12 }}>
           <button className="primary-btn" type="button" onClick={suggestRoute}>Suggest today's route</button>

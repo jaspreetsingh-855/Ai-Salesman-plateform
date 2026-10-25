@@ -10,6 +10,14 @@ function LeadsPage() {
   const [salesmen, setSalesmen] = useState([]);
   const [form, setForm] = useState(empty);
   const [error, setError] = useState("");
+  const [busy, setBusy] = useState("");
+  const [channels, setChannels] = useState({ whatsapp: false });
+  const [composer, setComposer] = useState(null);
+  const [active, setActive] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [chatInput, setChatInput] = useState("");
+  const [meeting, setMeeting] = useState({ date: "", time: "10:00" });
+  const [notice, setNotice] = useState("");
 
   const load = async () => {
     const leads = await api.get("/leads");
@@ -22,19 +30,127 @@ function LeadsPage() {
 
   useEffect(() => {
     load().catch((err) => setError(getErrorMessage(err)));
+    api.get("/messages/status").then((res) => setChannels(res.data)).catch(() => {});
   }, []);
 
   const submit = async (e) => {
     e.preventDefault();
     try {
-      await api.post("/leads", {
+      const created = await api.post("/leads", {
         ...form,
         salesman: user.role === "salesman" ? user.id : form.salesman
       });
       setForm(empty);
+      await load();
+      await openChat(created.data, true);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
+  };
+
+  const qualify = async (lead) => {
+    setBusy(lead._id);
+    setError("");
+    try {
+      await api.post("/ai/qualify-lead", { leadId: lead._id });
+      await load();
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const openWhatsApp = async (lead) => {
+    setBusy(lead._id);
+    setError("");
+    try {
+      const res = await api.post("/ai/follow-up", { leadId: lead._id });
+      setComposer({
+        leadId: lead._id,
+        name: lead.name,
+        phone: lead.phone,
+        source: res.data.source,
+        message: res.data.message
+      });
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const sendWhatsApp = async () => {
+    if (!composer?.message?.trim()) return;
+    setBusy("send");
+    setError("");
+    try {
+      const res = await api.post("/messages/whatsapp", {
+        leadId: composer.leadId,
+        message: composer.message
+      });
+      setComposer({ ...composer, note: res.data.note, sent: res.data.result?.sent });
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setBusy("");
+    }
+  };
+
+  const openChat = async (lead, autoStart) => {
+    setActive(lead);
+    setNotice("");
+    setMeeting({
+      date: lead.meetingDate || "",
+      time: lead.meetingTime || "10:00"
+    });
+    try {
+      if (autoStart) {
+        await api.post("/ai/auto-chat", { leadId: lead._id });
+      }
+      const res = await api.get(`/ai/chat/${lead._id}`);
+      setMessages(res.data.messages || []);
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
+  };
+
+  const sendChat = async (e) => {
+    e.preventDefault();
+    if (!active || !chatInput.trim()) return;
+    const text = chatInput.trim();
+    setChatInput("");
+    setMessages((prev) => [...prev, { _id: `tmp-${Date.now()}`, role: "customer", text }]);
+    try {
+      const res = await api.post("/ai/chat", { leadId: active._id, message: text });
+      setMessages((prev) => [...prev, res.data.message]);
+      if (res.data.status) setActive({ ...active, status: res.data.status });
       load();
     } catch (err) {
       setError(getErrorMessage(err));
+    }
+  };
+
+  const bookMeeting = async (e) => {
+    e.preventDefault();
+    if (!active) return;
+    setBusy("meet");
+    setError("");
+    try {
+      const res = await api.post("/ai/book-meeting", {
+        leadId: active._id,
+        date: meeting.date,
+        time: meeting.time
+      });
+      setNotice(`Visit booked ${res.data.lead.meetingDate} at ${res.data.lead.meetingTime}. It is on the salesman's agenda as a task.`);
+      setActive(res.data.lead);
+      const chat = await api.get(`/ai/chat/${active._id}`);
+      setMessages(chat.data.messages || []);
+      load();
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setBusy("");
     }
   };
 
@@ -43,10 +159,14 @@ function LeadsPage() {
       <div className="panel">
         <h3>Add lead / customer</h3>
         {error && <p className="error-text">{error}</p>}
+        <p className="muted">
+          Saving a lead starts an AI chat (auto first message). Book a visit to create a task.
+          {channels.whatsapp ? " WhatsApp send is on." : " Twilio is not set, so WhatsApp stays in-app."}
+        </p>
         <form onSubmit={submit}>
           <div className="form-grid">
             <input placeholder="Name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required />
-            <input placeholder="Phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+            <input placeholder="WhatsApp / phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
             <input placeholder="Shop / stop" value={form.shop} onChange={(e) => setForm({ ...form, shop: e.target.value })} />
             <input placeholder="Area" value={form.area} onChange={(e) => setForm({ ...form, area: e.target.value })} />
             <input placeholder="Linked stop name" value={form.stopName} onChange={(e) => setForm({ ...form, stopName: e.target.value })} />
@@ -59,9 +179,70 @@ function LeadsPage() {
               </select>
             )}
           </div>
+          <div className="form-grid full">
+            <textarea placeholder="Notes" value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+          </div>
           <button className="primary-btn" type="submit">Save lead</button>
         </form>
       </div>
+
+      {composer && (
+        <div className="panel">
+          <h3>WhatsApp to {composer.name}</h3>
+          <p className="muted">{composer.phone || "No phone on file"} · draft source: {composer.source}</p>
+          <div className="form-grid full">
+            <textarea
+              value={composer.message}
+              onChange={(e) => setComposer({ ...composer, message: e.target.value, note: "" })}
+            />
+          </div>
+          <div className="toolbar">
+            <button className="primary-btn" type="button" disabled={busy === "send" || !composer.phone} onClick={sendWhatsApp}>
+              {busy === "send" ? "Sending..." : "Send WhatsApp"}
+            </button>
+            <button className="ghost-btn" type="button" onClick={() => setComposer(null)}>Close</button>
+          </div>
+          {composer.note && <p className={composer.sent ? "muted" : "error-text"}>{composer.note}</p>}
+        </div>
+      )}
+
+      {active && (
+        <div className="panel">
+          <h3>AI chat · {active.name}</h3>
+          <p className="muted">Type as the customer. AI replies as the salesman. {active.meetingDate && `Booked: ${active.meetingDate} ${active.meetingTime}`}</p>
+          {notice && <p className="muted">{notice}</p>}
+          <div className="chat-log">
+            {messages.length === 0 && <p className="muted">No messages yet.</p>}
+            {messages.map((msg) => (
+              <div key={msg._id} className={`chat-bubble ${msg.role === "customer" ? "customer" : "ai"}`}>
+                {msg.text}
+              </div>
+            ))}
+          </div>
+          <form onSubmit={sendChat} className="toolbar">
+            <input
+              style={{ flex: 1, minWidth: 180 }}
+              placeholder="Customer message"
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+            />
+            <button className="primary-btn" type="submit">Send</button>
+            <button className="ghost-btn" type="button" onClick={() => openChat(active, true)}>Auto first message</button>
+            <button className="ghost-btn" type="button" onClick={() => setActive(null)}>Close</button>
+          </form>
+
+          <h3 style={{ marginTop: 20 }}>Book visit</h3>
+          <form onSubmit={bookMeeting}>
+            <div className="form-grid">
+              <input type="date" value={meeting.date} onChange={(e) => setMeeting({ ...meeting, date: e.target.value })} required />
+              <input type="time" value={meeting.time} onChange={(e) => setMeeting({ ...meeting, time: e.target.value })} required />
+            </div>
+            <button className="primary-btn" type="submit" disabled={busy === "meet"}>
+              {busy === "meet" ? "Booking..." : "Save meeting as task"}
+            </button>
+          </form>
+        </div>
+      )}
 
       <div className="panel">
         <h3>Leads</h3>
@@ -74,6 +255,8 @@ function LeadsPage() {
               <th>Phone</th>
               <th>Salesman</th>
               <th>Status</th>
+              <th>Meeting</th>
+              <th>AI score</th>
               <th></th>
             </tr>
           </thead>
@@ -92,7 +275,19 @@ function LeadsPage() {
                     <option value="lost">lost</option>
                   </select>
                 </td>
+                <td>{row.meetingDate ? `${row.meetingDate} ${row.meetingTime}` : "—"}</td>
                 <td>
+                  {row.score != null ? <strong>{row.score}/10</strong> : "—"}
+                  {row.nextAction && <div className="muted">{row.nextAction}</div>}
+                </td>
+                <td className="inline-actions">
+                  <button className="small-btn" type="button" onClick={() => openChat(row, false)}>Chat</button>
+                  <button className="small-btn" type="button" disabled={busy === row._id} onClick={() => qualify(row)}>
+                    {busy === row._id ? "..." : "AI score"}
+                  </button>
+                  <button className="small-btn" type="button" disabled={busy === row._id} onClick={() => openWhatsApp(row)}>
+                    WhatsApp
+                  </button>
                   <button className="danger-btn" type="button" onClick={() => api.delete(`/leads/${row._id}`).then(load)}>Delete</button>
                 </td>
               </tr>

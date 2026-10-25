@@ -32,6 +32,7 @@ function SettingsPage() {
       <h3>Company settings</h3>
       {error && <p className="error-text">{error}</p>}
       {message && <p className="muted">{message}</p>}
+      <p className="muted">AI uses OPENAI_API_KEY or GEMINI_API_KEY. WhatsApp uses TWILIO_SID, TWILIO_TOKEN and TWILIO_WHATSAPP_FROM in server/.env.</p>
       <form onSubmit={save}>
         <div className="form-grid">
           <input value={form.companyName || ""} onChange={(e) => setForm({ ...form, companyName: e.target.value })} placeholder="Company name" />

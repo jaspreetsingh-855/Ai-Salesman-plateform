@@ -7,6 +7,7 @@ function SalesmenPage() {
   const [rows, setRows] = useState([]);
   const [form, setForm] = useState(empty);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
 
   const load = async () => {
     const res = await api.get("/users/salesmen");
@@ -48,6 +49,7 @@ function SalesmenPage() {
       <div className="panel">
         <h3>Add salesman</h3>
         {error && <p className="error-text">{error}</p>}
+        {notice && <p className="muted">{notice}</p>}
         <form onSubmit={handleSubmit}>
           <div className="form-grid">
             <input name="name" placeholder="Name" value={form.name} onChange={handleChange} required />
@@ -92,7 +94,18 @@ function SalesmenPage() {
                   />
                 </td>
                 <td>{row.achievement}%</td>
-                <td>
+                <td className="inline-actions">
+                  <button className="small-btn" type="button" onClick={async () => {
+                    try {
+                      const res = await api.post("/messages/whatsapp", {
+                        userId: row.id,
+                        message: `Hi ${row.name}, please check today's SalesNav tasks and route.`
+                      });
+                      setNotice(res.data.note);
+                    } catch (err) {
+                      setError(getErrorMessage(err));
+                    }
+                  }}>WhatsApp</button>
                   <button className="danger-btn" type="button" onClick={() => remove(row.id)}>Remove</button>
                 </td>
               </tr>

@@ -9,7 +9,12 @@ const leadSchema = new mongoose.Schema(
     notes: { type: String, default: "" },
     status: { type: String, enum: ["new", "contacted", "won", "lost"], default: "new" },
     salesman: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    stopName: { type: String, default: "" }
+    stopName: { type: String, default: "" },
+    score: { type: Number, default: null },
+    nextAction: { type: String, default: "" },
+    meetingDate: { type: String, default: "" },
+    meetingTime: { type: String, default: "" },
+    meetingTask: { type: mongoose.Schema.Types.ObjectId, ref: "Task", default: null }
   },
   { timestamps: true }
 );

@@ -48,7 +48,7 @@ router.patch("/:id", requireAuth, async (req, res) => {
     return res.status(403).json({ message: "You cannot edit this lead." });
   }
 
-  ["name", "phone", "shop", "area", "notes", "stopName", "status"].forEach((key) => {
+  ["name", "phone", "shop", "area", "notes", "stopName", "status", "score", "nextAction"].forEach((key) => {
     if (req.body[key] !== undefined) lead[key] = req.body[key];
   });
   await lead.save();

@@ -15,7 +15,9 @@ const taskSchema = new mongoose.Schema(
     },
     notes: { type: String, default: "" },
     income: { type: Number, default: 0 },
-    photoUrl: { type: String, default: "" }
+    photoUrl: { type: String, default: "" },
+    time: { type: String, default: "" },
+    lead: { type: mongoose.Schema.Types.ObjectId, ref: "Lead", default: null }
   },
   { timestamps: true }
 );

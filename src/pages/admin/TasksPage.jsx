@@ -9,6 +9,7 @@ function TasksPage() {
   const [form, setForm] = useState(empty);
   const [filters, setFilters] = useState({ date: "", salesman: "", status: "", search: "" });
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
 
   const loadSalesmen = async () => {
     const res = await api.get("/users/salesmen");
@@ -47,6 +48,7 @@ function TasksPage() {
       <div className="panel">
         <h3>Create task</h3>
         {error && <p className="error-text">{error}</p>}
+        {notice && <p className="muted">{notice}</p>}
         <form onSubmit={handleSubmit}>
           <div className="form-grid">
             <input name="title" placeholder="Task title" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} required />
@@ -108,12 +110,21 @@ function TasksPage() {
                 <td>{task.notes || "-"}</td>
                 <td className="inline-actions">
                   <button className="small-btn" type="button" onClick={async () => {
-                    await api.post(`/tasks/${task._id}/remind`);
-                    if (task.salesman?._id) {
-                      await api.post("/messages/remind", { userId: task.salesman._id, message: `Reminder: ${task.title}` });
+                    try {
+                      await api.post(`/tasks/${task._id}/remind`);
+                      if (task.salesman?._id) {
+                        const res = await api.post("/messages/whatsapp", {
+                          userId: task.salesman._id,
+                          message: `Hi ${task.salesman.name}, reminder from SalesNav: ${task.title} (${task.date}). Please update the visit.`
+                        });
+                        setNotice(res.data.note);
+                      } else {
+                        setNotice("In-app reminder saved.");
+                      }
+                    } catch (err) {
+                      setError(getErrorMessage(err));
                     }
-                    alert("Reminder sent (in-app). SMS needs Twilio keys.");
-                  }}>Remind</button>
+                  }}>WhatsApp</button>
                   <button className="danger-btn" type="button" onClick={async () => { await api.delete(`/tasks/${task._id}`); loadTasks(); }}>Delete</button>
                 </td>
               </tr>

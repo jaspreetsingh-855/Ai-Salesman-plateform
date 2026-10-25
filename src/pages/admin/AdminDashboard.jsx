@@ -6,20 +6,37 @@ function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [summary, setSummary] = useState("");
   const [source, setSource] = useState("");
+  const [aiError, setAiError] = useState("");
   const [report, setReport] = useState(null);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    Promise.all([
-      api.get("/reports/dashboard"),
-      api.get("/ai/daily-summary"),
-      api.get("/reports")
-    ]).then(([dash, ai, rep]) => {
-      setStats(dash.data);
-      setSummary(ai.data.summary);
-      setSource(ai.data.source);
-      setReport(rep.data);
-    }).catch((err) => setError(getErrorMessage(err)));
+    const load = async () => {
+      try {
+        const [dash, rep] = await Promise.all([
+          api.get("/reports/dashboard"),
+          api.get("/reports")
+        ]);
+        setStats(dash.data);
+        setReport(rep.data);
+      } catch (err) {
+        setError(getErrorMessage(err));
+        return;
+      }
+
+      setSummary("Loading AI summary...");
+      try {
+        const ai = await api.get("/ai/daily-summary");
+        setSummary(ai.data.summary);
+        setSource(ai.data.source);
+        setAiError(ai.data.error || "");
+      } catch (err) {
+        setSource("local");
+        setSummary("AI is busy. Stats still loaded — try refresh in a minute.");
+        setAiError(getErrorMessage(err));
+      }
+    };
+    load();
   }, []);
 
   if (error) return <p className="error-text">{error}</p>;
@@ -38,6 +55,7 @@ function AdminDashboard() {
 
       <div className="panel">
         <h3>AI daily summary <small>({source || "local"})</small></h3>
+        {aiError && <p className="error-text">{aiError}</p>}
         <div className="ai-box">{summary}</div>
       </div>
 
