@@ -42,14 +42,21 @@ export function requireRole(...roles) {
   };
 }
 
-export function setAuthCookie(res, token) {
-  res.cookie("sn_token", token, {
+function cookieOptions() {
+  const frontend = (process.env.FRONTEND_URL || "").replace(/\/$/, "");
+  const crossSite = frontend.startsWith("https://") && !frontend.includes("localhost");
+  return {
     httpOnly: true,
-    sameSite: "lax",
+    sameSite: crossSite ? "none" : "lax",
+    secure: crossSite || process.env.NODE_ENV === "production",
     maxAge: 7 * 24 * 60 * 60 * 1000
-  });
+  };
+}
+
+export function setAuthCookie(res, token) {
+  res.cookie("sn_token", token, cookieOptions());
 }
 
 export function clearAuthCookie(res) {
-  res.clearCookie("sn_token");
+  res.clearCookie("sn_token", cookieOptions());
 }

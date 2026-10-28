@@ -30,7 +30,7 @@ async function askOpenAi(prompt, tone) {
         "Content-Type": "application/json",
         Authorization: `Bearer ${key}`
       },
-      signal: AbortSignal.timeout(8000),
+      signal: AbortSignal.timeout(20000),
       body: JSON.stringify({
         model: "gpt-4o-mini",
         temperature: 0.4,
@@ -65,12 +65,13 @@ async function askGemini(prompt, tone) {
   if (!key) return { text: null, error: null };
 
   try {
+    const model = process.env.GEMINI_MODEL || "gemini-3.5-flash";
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${key}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        signal: AbortSignal.timeout(8000),
+        signal: AbortSignal.timeout(20000),
         body: JSON.stringify({
           contents: [
             {
@@ -105,7 +106,9 @@ async function askModel(prompt) {
   if (process.env.GEMINI_API_KEY) {
     const gemini = await askGemini(prompt, tone);
     if (gemini.text) return { text: gemini.text, source: "gemini", error: null };
-    return { text: null, source: "local", error: gemini.error };
+    const openAi = await askOpenAi(prompt, tone);
+    if (openAi.text) return { text: openAi.text, source: "openai", error: null };
+    return { text: null, source: "local", error: gemini.error || openAi.error };
   }
   const openAi = await askOpenAi(prompt, tone);
   if (openAi.text) return { text: openAi.text, source: "openai", error: null };
