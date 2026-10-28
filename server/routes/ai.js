@@ -351,17 +351,11 @@ router.get("/chat/:leadId", requireAuth, async (req, res) => {
   res.json({ lead: loaded.lead, messages });
 });
 
-router.post("/chat", requireAuth, async (req, res) => {
-  const loaded = await loadLeadForUser(req, req.body.leadId);
-  if (loaded.error) return res.status(loaded.status || 404).json({ message: loaded.error });
-  const { lead } = loaded;
-  const customerText = (req.body.message || "").trim();
-  if (!customerText) return res.status(400).json({ message: "Message is required." });
-
-  await LeadChat.create({ lead: lead._id, role: "customer", text: customerText });
+export async function generateSalesReply(lead, customerText, { channel = "in-app" } = {}) {
+  await LeadChat.create({ lead: lead._id, role: "customer", text: customerText, channel });
   const history = await LeadChat.find({ lead: lead._id }).sort({ createdAt: 1 }).limit(20);
   const settings = await getSettings();
-  const salesmanName = lead.salesman?.name || req.user.name;
+  const salesmanName = lead.salesman?.name || "your salesman";
   const company = settings.companyName || "SalesNav AI";
   const local = `Thanks ${lead.name}. ${salesmanName} from ${company} can visit ${lead.shop || "your shop"}${lead.area ? ` in ${lead.area}` : ""}. What day and time works?`;
 
@@ -375,18 +369,31 @@ router.post("/chat", requireAuth, async (req, res) => {
   );
 
   const reply = (model.text || local).trim().replace(/^["']|["']$/g, "");
-  const saved = await LeadChat.create({ lead: lead._id, role: "ai", text: reply });
+  const saved = await LeadChat.create({ lead: lead._id, role: "ai", text: reply, channel });
   if (lead.status === "new") {
     lead.status = "contacted";
     await lead.save();
   }
 
+  return { reply, saved, source: model.source, error: model.error || null, status: lead.status };
+}
+
+router.post("/chat", requireAuth, async (req, res) => {
+  const loaded = await loadLeadForUser(req, req.body.leadId);
+  if (loaded.error) return res.status(loaded.status || 404).json({ message: loaded.error });
+  const { lead } = loaded;
+  const customerText = (req.body.message || "").trim();
+  if (!customerText) return res.status(400).json({ message: "Message is required." });
+
+  const channel = req.body.channel === "whatsapp" ? "whatsapp" : "in-app";
+  const result = await generateSalesReply(lead, customerText, { channel });
+
   res.json({
-    source: model.source,
-    error: model.error || null,
-    reply,
-    message: saved,
-    status: lead.status
+    source: result.source,
+    error: result.error,
+    reply: result.reply,
+    message: result.saved,
+    status: result.status
   });
 });
 
@@ -413,7 +420,7 @@ router.post("/auto-chat", requireAuth, async (req, res) => {
     `Write the first outbound WhatsApp from salesman ${salesmanName} at ${company} to ${lead.name} about ${lead.shop || "their shop"}. Offer these visit slots: ${slots}. Max 240 characters. No fake discounts.`
   );
   const text = (model.text || local).trim().replace(/^["']|["']$/g, "");
-  const saved = await LeadChat.create({ lead: lead._id, role: "ai", text });
+  const saved = await LeadChat.create({ lead: lead._id, role: "ai", text, channel: "in-app" });
   res.json({ alreadyStarted: false, source: model.source, error: model.error || null, message: saved, suggestedSlots: suggestSlots(settings.workingHoursStart || "09:00", settings.workingHoursEnd || "18:00") });
 });
 

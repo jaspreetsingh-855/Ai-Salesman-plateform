@@ -62,3 +62,14 @@ export async function sendWhatsApp(phone, body) {
   if (!to) return { sent: false, reason: "Missing phone number" };
   return sendTwilio({ to, from, body });
 }
+
+export function phoneDigits(phone) {
+  return toE164(phone).replace(/\D/g, "");
+}
+
+export function waMeLink(phone, text = "") {
+  const digits = phoneDigits(phone);
+  if (!digits) return "";
+  const query = text ? `?text=${encodeURIComponent(text)}` : "";
+  return `https://wa.me/${digits}${query}`;
+}

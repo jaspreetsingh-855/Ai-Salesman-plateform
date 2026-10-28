@@ -6,6 +6,7 @@ import User from "../models/User.js";
 import { clearAuthCookie, requireAuth, setAuthCookie } from "../middleware/auth.js";
 import { signUser } from "../utils/notify.js";
 import { audit } from "../utils/audit.js";
+import { mailConfigured, sendResetEmail } from "../utils/mail.js";
 
 const router = Router();
 
@@ -89,8 +90,10 @@ router.post("/logout-all", requireAuth, async (req, res) => {
 router.post("/forgot", async (req, res) => {
   const email = (req.body.email || "").trim().toLowerCase();
   const user = await User.findOne({ email });
+  const generic = "If that email exists, we sent a reset link.";
+
   if (!user) {
-    return res.json({ message: "If that email exists, a reset link was created." });
+    return res.json({ message: generic, emailed: mailConfigured() });
   }
 
   const token = crypto.randomBytes(20).toString("hex");
@@ -98,9 +101,29 @@ router.post("/forgot", async (req, res) => {
   user.resetExpires = new Date(Date.now() + 60 * 60 * 1000);
   await user.save();
 
-  const resetUrl = `${req.headers.origin || "http://localhost:5173"}/reset-password?token=${token}`;
+  const origin = process.env.FRONTEND_URL || req.headers.origin || "http://localhost:5173";
+  const resetUrl = `${origin.replace(/\/$/, "")}/reset-password?token=${token}`;
+
+  if (mailConfigured()) {
+    const result = await sendResetEmail({
+      to: user.email,
+      name: user.name,
+      role: user.role,
+      resetUrl
+    });
+    if (result.sent) {
+      return res.json({ message: "Check your email for the reset link. It works for admin and salesman accounts.", emailed: true });
+    }
+    return res.json({
+      message: "Email send failed. Use this demo link for now.",
+      emailed: false,
+      resetUrl
+    });
+  }
+
   res.json({
-    message: "Reset link created. Email is not configured, so the demo link is returned here.",
+    message: "Email is not set in server/.env, so here is a demo reset link (admin and salesman).",
+    emailed: false,
     resetUrl
   });
 });

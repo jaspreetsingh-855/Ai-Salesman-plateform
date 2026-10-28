@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import api, { getErrorMessage } from "../../api/client";
 import { useAuth } from "../../context/AuthContext";
+import { openWhatsApp } from "../../utils/whatsapp";
 
 const empty = { name: "", phone: "", shop: "", area: "", stopName: "", notes: "", salesman: "" };
 
@@ -11,7 +12,7 @@ function LeadsPage() {
   const [form, setForm] = useState(empty);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState("");
-  const [channels, setChannels] = useState({ whatsapp: false });
+  const [channels, setChannels] = useState({ whatsapp: false, clickToChat: true });
   const [composer, setComposer] = useState(null);
   const [active, setActive] = useState(null);
   const [messages, setMessages] = useState([]);
@@ -32,6 +33,19 @@ function LeadsPage() {
     load().catch((err) => setError(getErrorMessage(err)));
     api.get("/messages/status").then((res) => setChannels(res.data)).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!active?._id) return undefined;
+    const timer = setInterval(async () => {
+      try {
+        const res = await api.get(`/ai/chat/${active._id}`);
+        setMessages(res.data.messages || []);
+      } catch {
+        /* ignore poll errors */
+      }
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [active?._id]);
 
   const submit = async (e) => {
     e.preventDefault();
@@ -61,7 +75,7 @@ function LeadsPage() {
     }
   };
 
-  const openWhatsApp = async (lead) => {
+  const openComposer = async (lead) => {
     setBusy(lead._id);
     setError("");
     try {
@@ -85,11 +99,21 @@ function LeadsPage() {
     setBusy("send");
     setError("");
     try {
+      const opened = openWhatsApp(composer.phone, composer.message);
       const res = await api.post("/messages/whatsapp", {
         leadId: composer.leadId,
         message: composer.message
       });
-      setComposer({ ...composer, note: res.data.note, sent: res.data.result?.sent });
+      const sent = Boolean(res.data.result?.sent);
+      setComposer({
+        ...composer,
+        note: sent
+          ? res.data.note
+          : opened
+            ? "WhatsApp opened with this message. Send it from WhatsApp."
+            : res.data.note,
+        sent: sent || opened
+      });
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
@@ -131,6 +155,21 @@ function LeadsPage() {
     }
   };
 
+  const sendLastAiOnWhatsApp = async () => {
+    if (!active?.phone) return;
+    const lastAi = [...messages].reverse().find((msg) => msg.role === "ai" || msg.role === "salesman");
+    if (!lastAi?.text) return;
+    openWhatsApp(active.phone, lastAi.text);
+    try {
+      await api.post("/messages/whatsapp", { leadId: active._id, message: lastAi.text });
+      const res = await api.get(`/ai/chat/${active._id}`);
+      setMessages(res.data.messages || []);
+      setNotice("WhatsApp opened with the last AI message.");
+    } catch (err) {
+      setError(getErrorMessage(err));
+    }
+  };
+
   const bookMeeting = async (e) => {
     e.preventDefault();
     if (!active) return;
@@ -160,8 +199,10 @@ function LeadsPage() {
         <h3>Add lead / customer</h3>
         {error && <p className="error-text">{error}</p>}
         <p className="muted">
-          Saving a lead starts an AI chat (auto first message). Book a visit to create a task.
-          {channels.whatsapp ? " WhatsApp send is on." : " Twilio is not set, so WhatsApp stays in-app."}
+          Saving a lead starts an AI chat. WhatsApp opens on the lead's number with the drafted message.
+          {channels.whatsapp
+            ? " Twilio auto-send is on, and inbound replies land in Chat."
+            : " Twilio is optional — Send WhatsApp still opens WhatsApp Web / the app."}
         </p>
         <form onSubmit={submit}>
           <div className="form-grid">
@@ -209,13 +250,17 @@ function LeadsPage() {
       {active && (
         <div className="panel">
           <h3>AI chat · {active.name}</h3>
-          <p className="muted">Type as the customer. AI replies as the salesman. {active.meetingDate && `Booked: ${active.meetingDate} ${active.meetingTime}`}</p>
+          <p className="muted">
+            Type as the customer, or send the last AI line on WhatsApp.
+            {active.meetingDate && ` Booked: ${active.meetingDate} ${active.meetingTime}`}
+          </p>
           {notice && <p className="muted">{notice}</p>}
           <div className="chat-log">
             {messages.length === 0 && <p className="muted">No messages yet.</p>}
             {messages.map((msg) => (
-              <div key={msg._id} className={`chat-bubble ${msg.role === "customer" ? "customer" : "ai"}`}>
-                {msg.text}
+              <div key={msg._id} className={`chat-bubble ${msg.role === "customer" ? "customer" : msg.role === "salesman" ? "salesman" : "ai"}`}>
+                <span>{msg.text}</span>
+                {msg.channel === "whatsapp" && <small> WhatsApp</small>}
               </div>
             ))}
           </div>
@@ -227,6 +272,9 @@ function LeadsPage() {
               onChange={(e) => setChatInput(e.target.value)}
             />
             <button className="primary-btn" type="submit">Send</button>
+            <button className="ghost-btn" type="button" disabled={!active.phone} onClick={sendLastAiOnWhatsApp}>
+              Send on WhatsApp
+            </button>
             <button className="ghost-btn" type="button" onClick={() => openChat(active, true)}>Auto first message</button>
             <button className="ghost-btn" type="button" onClick={() => setActive(null)}>Close</button>
           </form>
@@ -285,7 +333,7 @@ function LeadsPage() {
                   <button className="small-btn" type="button" disabled={busy === row._id} onClick={() => qualify(row)}>
                     {busy === row._id ? "..." : "AI score"}
                   </button>
-                  <button className="small-btn" type="button" disabled={busy === row._id} onClick={() => openWhatsApp(row)}>
+                  <button className="small-btn" type="button" disabled={busy === row._id || !row.phone} onClick={() => openComposer(row)}>
                     WhatsApp
                   </button>
                   <button className="danger-btn" type="button" onClick={() => api.delete(`/leads/${row._id}`).then(load)}>Delete</button>

@@ -113,11 +113,13 @@ function TasksPage() {
                     try {
                       await api.post(`/tasks/${task._id}/remind`);
                       if (task.salesman?._id) {
+                        const message = `Hi ${task.salesman.name}, reminder from SalesNav: ${task.title} (${task.date}). Please update the visit.`;
                         const res = await api.post("/messages/whatsapp", {
                           userId: task.salesman._id,
-                          message: `Hi ${task.salesman.name}, reminder from SalesNav: ${task.title} (${task.date}). Please update the visit.`
+                          message
                         });
-                        setNotice(res.data.note);
+                        if (res.data.waLink) window.open(res.data.waLink, "_blank", "noopener,noreferrer");
+                        setNotice(res.data.result?.sent ? res.data.note : "WhatsApp opened with the reminder.");
                       } else {
                         setNotice("In-app reminder saved.");
                       }

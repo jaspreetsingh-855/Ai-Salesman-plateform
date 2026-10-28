@@ -97,11 +97,10 @@ function SalesmenPage() {
                 <td className="inline-actions">
                   <button className="small-btn" type="button" onClick={async () => {
                     try {
-                      const res = await api.post("/messages/whatsapp", {
-                        userId: row.id,
-                        message: `Hi ${row.name}, please check today's SalesNav tasks and route.`
-                      });
-                      setNotice(res.data.note);
+                      const message = `Hi ${row.name}, please check today's SalesNav tasks and route.`;
+                      const res = await api.post("/messages/whatsapp", { userId: row.id, message });
+                      if (res.data.waLink) window.open(res.data.waLink, "_blank", "noopener,noreferrer");
+                      setNotice(res.data.result?.sent ? res.data.note : "WhatsApp opened with the reminder.");
                     } catch (err) {
                       setError(getErrorMessage(err));
                     }

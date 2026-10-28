@@ -32,7 +32,8 @@ function ForgotPassword() {
         {error && <p className="error-message">{error}</p>}
         {message && <p className="error-message" style={{ color: "#1c7c3c" }}>{message}</p>}
         {link && <p className="error-message"><a href={link}>Open reset link</a></p>}
-        <button type="submit">Create reset link</button>
+        <p style={{ fontSize: 13, color: "#5b6478" }}>Works for admin and salesman. If EMAIL_USER is set, the link is emailed.</p>
+        <button type="submit">Send reset link</button>
         <div className="signup-section">
           <button type="button" onClick={() => navigate("/login")}>Back to login</button>
         </div>
